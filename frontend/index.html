@@ -99,13 +99,13 @@
 
         .tab-inactive {
             background: rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.8);
+            color: #64748b;
             backdrop-filter: blur(10px);
         }
 
         .tab-inactive:hover {
             background: rgba(255, 255, 255, 0.2);
-            color: white;
+            color: #475569;
             transform: translateY(-1px);
         }
 
@@ -285,15 +285,48 @@
             <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
                 <div id="content-outline" class="tab-content animate-fade-in-up">
                     <div class="mb-6">
-                        <label for="file-selector" class="block text-sm font-semibold text-slate-700 mb-3 flex items-center space-x-2">
+                        <label class="block text-sm font-semibold text-slate-700 mb-3 flex items-center space-x-2">
                             <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
                             </svg>
-                            <span>Select Document</span>
+                            <span>Document Selection</span>
                         </label>
-                        <select id="file-selector" class="w-full glass-card border-0 text-slate-800 text-sm rounded-xl p-4 shadow-lg focus:ring-2 focus:ring-purple-500 focus:outline-none transition-all duration-300">
-                            <option value="">✨ Loading magical documents...</option>
-                        </select>
+                        
+                        <!-- Upload Section -->
+                        <div class="mb-4">
+                            <div id="upload-area" class="relative glass-card border-2 border-dashed border-purple-300 rounded-xl p-6 text-center cursor-pointer transition-all duration-300 hover:border-purple-400 hover:bg-purple-50/20 group">
+                                <input type="file" id="file-upload" accept=".pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                                <div class="upload-content">
+                                    <div class="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                        <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                        </svg>
+                                    </div>
+                                    <p class="text-sm font-medium text-slate-700 mb-1">Upload New Document</p>
+                                    <p class="text-xs text-slate-500">Drag & drop or click to select PDF files</p>
+                                </div>
+                                <div id="upload-progress" class="hidden">
+                                    <div class="w-12 h-12 mx-auto mb-3">
+                                        <div class="loader"></div>
+                                    </div>
+                                    <p class="text-sm font-medium text-purple-600">Processing document...</p>
+                                    <p class="text-xs text-slate-500" id="upload-status">Preparing your PDF</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Existing Documents Dropdown -->
+                        <div class="mb-2">
+                            <label for="file-selector" class="block text-xs font-medium text-slate-600 mb-2 flex items-center space-x-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
+                                <span>Or choose from processed documents</span>
+                            </label>
+                            <select id="file-selector" class="w-full glass-card border-0 text-slate-800 text-sm rounded-xl p-3 shadow-lg focus:ring-2 focus:ring-purple-500 focus:outline-none transition-all duration-300">
+                                <option value="">✨ Loading magical documents...</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="glass-card rounded-2xl p-6 shadow-lg">
                         <h2 id="outline-title" class="font-bold text-lg mb-4 gradient-text">Select a document to explore its structure</h2>
@@ -418,10 +451,54 @@
                 handleFileSelection(e.target.value);
             });
             
+            // File upload functionality
+            const fileUpload = document.getElementById('file-upload');
+            const uploadArea = document.getElementById('upload-area');
+            
+            // Click to upload
+            fileUpload.addEventListener('change', handleFileUpload);
+            
+            // Drag and drop functionality
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('border-purple-400', 'bg-purple-50/30');
+            });
+            
+            uploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('border-purple-400', 'bg-purple-50/30');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('border-purple-400', 'bg-purple-50/30');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].type === 'application/pdf') {
+                    fileUpload.files = files;
+                    handleFileUpload({ target: { files: files } });
+                } else {
+                    showUploadError('Please select a valid PDF file');
+                }
+            });
+            
             // Persona selection and insights generation
             document.getElementById('generate-insights').addEventListener('click', () => {
                 const persona = document.getElementById('persona-selector').value;
-                loadAndDisplayInsights(persona);
+                if (currentSelectedFile) {
+                    loadAndDisplayInsights(persona, currentSelectedFile);
+                } else {
+                    const container = document.getElementById('insights-container');
+                    container.innerHTML = `
+                        <div class="text-center p-8">
+                            <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-full flex items-center justify-center">
+                                <svg class="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                            </div>
+                            <h3 class="font-bold text-lg mb-2 gradient-text">No Document Selected</h3>
+                            <p class="text-slate-600 mb-1">Please select a document from the outline tab first.</p>
+                        </div>
+                    `;
+                }
             });
 
             // Retry PDF loading
@@ -432,10 +509,138 @@
             });
         }
 
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (file.type !== 'application/pdf') {
+                showUploadError('Please select a PDF file');
+                return;
+            }
+            
+            const maxSize = 50 * 1024 * 1024; // 50MB
+            if (file.size > maxSize) {
+                showUploadError('File size too large. Please select a file smaller than 50MB');
+                return;
+            }
+            
+            showUploadProgress();
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                updateUploadStatus('Uploading document...');
+                
+                const uploadResponse = await fetch(`${API_BASE_URL}/api/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!uploadResponse.ok) {
+                    const errorData = await uploadResponse.json().catch(() => ({}));
+                    const errorMessage = errorData.error || `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`;
+                    throw new Error(errorMessage);
+                }
+                
+                const uploadResult = await uploadResponse.json();
+                const fileStem = uploadResult.file_stem || file.name.replace('.pdf', '');
+                
+                updateUploadStatus('Processing document structure...');
+                
+                await populateFileSelector();
+                
+                document.getElementById('file-selector').value = fileStem;
+                handleFileSelection(fileStem);
+                
+                showUploadSuccess(`Successfully uploaded: ${file.name}`);
+                
+                setTimeout(() => {
+                    resetUploadArea();
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                showUploadError(`Upload failed: ${error.message}`);
+                
+                setTimeout(() => {
+                    resetUploadArea();
+                }, 5000);
+            }
+        }
+        
+        function showUploadProgress() {
+            const uploadContent = document.querySelector('.upload-content');
+            const uploadProgress = document.getElementById('upload-progress');
+            
+            uploadContent.classList.add('hidden');
+            uploadProgress.classList.remove('hidden');
+        }
+        
+        function updateUploadStatus(message) {
+            const statusElement = document.getElementById('upload-status');
+            if (statusElement) {
+                statusElement.textContent = message;
+            }
+        }
+        
+        function showUploadSuccess(message) {
+            const uploadArea = document.getElementById('upload-area');
+            const uploadProgress = document.getElementById('upload-progress');
+            
+            uploadProgress.innerHTML = `
+                <div class="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <p class="text-sm font-medium text-green-600">Upload Successful!</p>
+                <p class="text-xs text-slate-500">${message}</p>
+            `;
+            
+            uploadArea.classList.remove('border-purple-300');
+            uploadArea.classList.add('border-green-300', 'bg-green-50/20');
+        }
+        
+        function showUploadError(message) {
+            const uploadArea = document.getElementById('upload-area');
+            const uploadProgress = document.getElementById('upload-progress');
+            const uploadContent = document.querySelector('.upload-content');
+            
+            uploadContent.classList.add('hidden');
+            uploadProgress.classList.remove('hidden');
+            
+            uploadProgress.innerHTML = `
+                <div class="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-red-100 to-pink-100 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </div>
+                <p class="text-sm font-medium text-red-600">Upload Failed</p>
+                <p class="text-xs text-slate-500">${message}</p>
+            `;
+            
+            uploadArea.classList.remove('border-purple-300');
+            uploadArea.classList.add('border-red-300', 'bg-red-50/20');
+        }
+        
+        function resetUploadArea() {
+            const uploadArea = document.getElementById('upload-area');
+            const uploadProgress = document.getElementById('upload-progress');
+            const uploadContent = document.querySelector('.upload-content');
+            const fileUpload = document.getElementById('file-upload');
+            
+            uploadArea.className = 'relative glass-card border-2 border-dashed border-purple-300 rounded-xl p-6 text-center cursor-pointer transition-all duration-300 hover:border-purple-400 hover:bg-purple-50/20 group';
+            
+            uploadContent.classList.remove('hidden');
+            uploadProgress.classList.add('hidden');
+            
+            fileUpload.value = '';
+        }
+
         function switchTab(tabName) {
             const isOutline = tabName === 'outline';
             
-            // Update tab buttons with enhanced styling
             const outlineTab = document.getElementById('tab-outline');
             const insightsTab = document.getElementById('tab-insights');
             
@@ -447,7 +652,6 @@
                 outlineTab.className = outlineTab.className.replace('tab-active', 'tab-inactive');
             }
             
-            // Update content visibility with animation
             const outlineContent = document.getElementById('content-outline');
             const insightsContent = document.getElementById('content-insights');
             
@@ -648,7 +852,6 @@
             data.outline.forEach((item, index) => {
                 const li = document.createElement('li');
                 
-                // Enhanced styling based on heading level
                 const paddingClass = {
                     'H1': 'pl-0',
                     'H2': 'pl-6', 
@@ -679,7 +882,6 @@
                     </a>
                 `;
                 
-                // Add click handler for page navigation
                 li.querySelector('a').addEventListener('click', async (e) => {
                     e.preventDefault();
                     const pageNum = parseInt(e.currentTarget.dataset.page, 10);
@@ -687,15 +889,12 @@
                     
                     console.log(`Outline item clicked - navigating to page: ${pageNum}`);
                     
-                    // Clear previous active states
                     document.querySelectorAll('.outline-item').forEach(el => {
                         el.classList.remove('outline-item-active');
                     });
                     
-                    // Add active state to clicked item
                     clickedElement.classList.add('outline-item-active');
                     
-                    // Navigate to page
                     await navigateToPage(pageNum);
                 });
                 
@@ -706,47 +905,41 @@
         async function navigateToPage(pageNum) {
             console.log(`🔍 Attempting to navigate to page ${pageNum}`);
             
-            // Check if PDF is loaded and APIs are available
-            if (!isPDFLoaded || !viewerAPIs) {
-                console.warn('❌ PDF not loaded or APIs not available');
-                
-                // If PDF is still loading, wait and retry
-                if (!isPDFLoaded) {
-                    console.log('⏳ PDF still loading, waiting...');
-                    setTimeout(() => navigateToPage(pageNum), 2000);
-                    return;
+            const pollIsReady = (resolve, reject) => {
+                if (isPDFLoaded && viewerAPIs) {
+                    resolve();
+                } else if (document.getElementById('pdf-loading').style.display !== 'none') {
+                    setTimeout(() => pollIsReady(resolve, reject), 250);
+                } else {
+                    reject(new Error("PDF viewer failed to load or is not ready."));
                 }
-                return;
-            }
-            
+            };
+
             try {
+                await new Promise((resolve, reject) => {
+                    const timeoutId = setTimeout(() => reject(new Error("PDF loading timed out after 10 seconds.")), 10000);
+                    
+                    pollIsReady(
+                        () => { clearTimeout(timeoutId); resolve(); },
+                        (err) => { clearTimeout(timeoutId); reject(err); }
+                    );
+                });
+
                 console.log('✅ PDF loaded, APIs available, calling gotoLocation...');
-                
-                // Use the gotoLocation API with proper error handling
                 await viewerAPIs.gotoLocation(pageNum);
                 console.log(`✅ Successfully navigated to page ${pageNum}`);
                 
             } catch (error) {
                 console.error(`❌ Navigation failed for page ${pageNum}:`, error);
-                
-                // Try alternative navigation method
-                try {
-                    console.log('🔄 Trying alternative navigation method...');
-                    if (viewerAPIs.getCurrentPage) {
-                        const currentPage = await viewerAPIs.getCurrentPage();
-                        console.log(`Current page: ${currentPage}, target: ${pageNum}`);
-                        
-                        // Try gotoLocation with coordinates
-                        await viewerAPIs.gotoLocation(pageNum, 0, 0);
-                        console.log(`✅ Alternative navigation succeeded for page ${pageNum}`);
-                    }
-                } catch (altError) {
-                    console.error(`❌ Alternative navigation also failed:`, altError);
-                }
+                const errorEl = document.getElementById('pdf-error');
+                const errorMsgEl = document.getElementById('pdf-error-message');
+                errorMsgEl.textContent = `Could not navigate to page ${pageNum}. ${error.message}`;
+                errorEl.style.display = 'block';
+                setTimeout(() => { errorEl.style.display = 'none'; }, 4000);
             }
         }
 
-        async function loadAndDisplayInsights(persona) {
+        async function loadAndDisplayInsights(persona, fileStem) {
             const container = document.getElementById('insights-container');
             
             container.innerHTML = `
@@ -763,7 +956,7 @@
             `;
             
             try {
-                const response = await fetch(`${API_BASE_URL}/api/insights?persona=${persona}`);
+                const response = await fetch(`${API_BASE_URL}/api/insights?persona=${persona}&file_stem=${fileStem}`);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
@@ -871,27 +1064,22 @@
                 </div>
             `;
             
-            // Add click handlers for insight cards
             container.querySelectorAll('[data-page]').forEach(el => {
                 el.addEventListener('click', async () => {
                     const pageNum = parseInt(el.dataset.page, 10);
                     const docStem = el.dataset.docStem;
                     
-                    // Add visual feedback
                     el.style.transform = 'scale(0.98)';
                     setTimeout(() => {
                         el.style.transform = '';
                     }, 150);
                     
-                    // Switch to that document if needed
                     if (docStem !== currentSelectedFile) {
                         document.getElementById('file-selector').value = docStem;
                         handleFileSelection(docStem);
                         
-                        // Wait for PDF to load before navigating
-                        setTimeout(() => navigateToPage(pageNum), 3000);
+                        await navigateToPage(pageNum);
                     } else {
-                        // Navigate immediately if same document
                         await navigateToPage(pageNum);
                     }
                 });
@@ -900,4 +1088,3 @@
     </script>
 </body>
 </html>
-                
