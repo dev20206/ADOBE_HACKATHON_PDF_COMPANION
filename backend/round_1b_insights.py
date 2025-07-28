@@ -1,5 +1,6 @@
 # backend/round_1b_insights.py
 # Solution for Round 1B: Generates persona-driven insights.
+# Includes relevance threshold to improve quality.
 
 import fitz
 import json
@@ -77,7 +78,7 @@ def clean_text(text):
     return text.strip()
 
 def chunk_pdf_text(doc):
-    """Chunks text into meaningful paragraphs."""
+    """Chunks text into meaningful paragraphs with relaxed word count."""
     chunks = []
     
     for page_num, page in enumerate(doc):
@@ -89,9 +90,9 @@ def chunk_pdf_text(doc):
                 if len(block) >= 5 and block[6] == 0:  # Text block
                     text = clean_text(block[4])
                     
-                    # Filter chunks by word count (focus on substantial paragraphs)
+                    # Relaxed filter for word count to capture more potential insights
                     word_count = len(text.split())
-                    if 15 <= word_count <= 500:  # Reasonable paragraph size
+                    if 10 <= word_count <= 800:  # More flexible paragraph size
                         chunks.append({
                             "text": text, 
                             "page": page_num + 1
@@ -121,7 +122,9 @@ def find_section_title(chunk, outline_data):
         return outline_data.get("title", "Introduction")
 
 def run_persona_extraction(pdf_paths, persona, model, outline_dir):
-    """Main logic for persona-based extraction."""
+    """Main logic for persona-based extraction with a relevance threshold."""
+    RELEVANCE_THRESHOLD = 0.35 # Minimum similarity score to be considered an insight
+
     if persona not in PERSONA_QUERIES:
         raise ValueError(f"Persona '{persona}' is not defined. Available personas: {list(PERSONA_QUERIES.keys())}")
 
@@ -147,7 +150,7 @@ def run_persona_extraction(pdf_paths, persona, model, outline_dir):
                     print(f"  Warning: No chunks extracted from {os.path.basename(pdf_path)}")
                     continue
                 
-                print(f"  Extracted {len(pdf_chunks)} chunks")
+                print(f"  Extracted {len(pdf_chunks)} chunks for analysis")
                 
                 # Encode chunk texts
                 chunk_texts = [c['text'] for c in pdf_chunks]
@@ -160,15 +163,16 @@ def run_persona_extraction(pdf_paths, persona, model, outline_dir):
                 # Calculate similarities
                 similarities = cosine_similarity(chunk_embeddings, query_embeddings)
                 
-                # Add chunks with relevance scores
+                # Add chunks that meet the relevance threshold
                 for i, chunk in enumerate(pdf_chunks):
                     max_similarity = float(np.max(similarities[i]))
-                    all_chunks.append({
-                        "text": chunk['text'], 
-                        "page": chunk['page'],
-                        "doc_path": pdf_path, 
-                        "relevance": max_similarity
-                    })
+                    if max_similarity >= RELEVANCE_THRESHOLD:
+                        all_chunks.append({
+                            "text": chunk['text'], 
+                            "page": chunk['page'],
+                            "doc_path": pdf_path, 
+                            "relevance": max_similarity
+                        })
                 
                 processed_docs.append(os.path.basename(pdf_path))
                 
@@ -177,6 +181,7 @@ def run_persona_extraction(pdf_paths, persona, model, outline_dir):
             continue
 
     if not all_chunks:
+        print("No chunks met the relevance threshold.")
         return {
             "metadata": {
                 "documents_processed": processed_docs,
@@ -190,9 +195,10 @@ def run_persona_extraction(pdf_paths, persona, model, outline_dir):
     # Sort by relevance (highest first)
     all_chunks.sort(key=lambda x: x['relevance'], reverse=True)
 
-    # Extract top sections
+    # Extract top sections from the relevant chunks
     extracted_sections = []
     top_chunks = all_chunks[:15]  # Return top 15 sections
+    print(f"Found {len(top_chunks)} relevant sections above threshold.")
     
     for i, chunk in enumerate(top_chunks):
         doc_basename = os.path.basename(chunk['doc_path'])
