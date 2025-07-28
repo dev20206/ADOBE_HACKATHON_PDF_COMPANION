@@ -1,0 +1,11 @@
+# Core dependencies for PDF processing and the API server
+PyMuPDF==1.23.26
+Flask==3.0.0
+Flask-Cors==4.0.0
+
+# Dependencies for Round 1B semantic analysis
+numpy==1.26.4
+sentence-transformers==2.2.2
+scikit-learn==1.3.0
+torch
+huggingface-hub==0.19.4
