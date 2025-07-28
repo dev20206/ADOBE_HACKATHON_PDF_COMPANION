@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Research Companion</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://acrobatservices.adobe.com/view-sdk/viewer.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --glass-bg: rgba(255, 255, 255, 0.25);
+            --glass-border: rgba(255, 255, 255, 0.18);
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-attachment: fixed;
+        }
+
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 40px 0 rgba(31, 38, 135, 0.15);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { 
+            background: rgba(255, 255, 255, 0.1); 
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb { 
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #5a67d8, #6b46c1);
+        }
+
+        .loader {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .animate-fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .animate-pulse-soft {
+            animation: pulse 2s infinite;
+        }
+
+        .tab-active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .tab-inactive {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-inactive:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .outline-item {
+            transition: all 0.3s ease;
+            border-radius: 12px;
+        }
+
+        .outline-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateX(4px);
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
+        }
+        
+        .outline-item-active {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2)) !important;
+            border-left: 4px solid #667eea !important;
+            transform: translateX(4px);
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.25);
+        }
+
+        .insight-card {
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .insight-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(102, 126, 234, 0.2);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .floating-dots {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .floating-dots::before,
+        .floating-dots::after {
+            content: '';
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            animation: float 20s infinite linear;
+        }
+
+        .floating-dots::before {
+            top: -100px;
+            left: -100px;
+        }
+
+        .floating-dots::after {
+            bottom: -100px;
+            right: -100px;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(100px, -100px) rotate(360deg); }
+        }
+
+        #adobe-dc-view {
+            width: 100%;
+            height: 100%;
+            min-height: 500px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-badge {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+        }
+
+        .page-badge {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        }
+
+        .importance-badge {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+        }
+
+        .header-title {
+            font-family: 'Playfair Display', serif;
+            font-weight: 600;
+            background: linear-gradient(135deg, #1e293b, #334155);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .sidebar {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.9));
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .main-content {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="text-slate-800 flex flex-col h-screen overflow-hidden relative">
+    <div class="floating-dots"></div>
+
+    <header class="glass-morphism border-0 border-b border-white/20 shadow-lg p-6 relative z-10">
+        <div class="flex items-center space-x-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-white drop-shadow-lg">PDF Research Companion</h1>
+                <p class="text-white/80 text-sm">Intelligent document analysis and navigation</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <aside class="w-full md:w-1/3 lg:w-1/4 sidebar flex flex-col shadow-2xl relative z-10">
+            <div class="border-b border-white/20 p-6">
+                <nav class="flex space-x-2">
+                    <button id="tab-outline" class="flex-1 py-3 px-4 text-center font-semibold text-sm rounded-xl tab-active transition-all duration-300">
+                        <div class="flex items-center justify-center space-x-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                            </svg>
+                            <span>Outline</span>
+                        </div>
+                    </button>
+                    <button id="tab-insights" class="flex-1 py-3 px-4 text-center font-semibold text-sm rounded-xl tab-inactive transition-all duration-300">
+                        <div class="flex items-center justify-center space-x-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                            </svg>
+                            <span>Insights</span>
+                        </div>
+                    </button>
+                </nav>
+            </div>
+
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
+                <div id="content-outline" class="tab-content animate-fade-in-up">
+                    <div class="mb-6">
+                        <label for="file-selector" class="block text-sm font-semibold text-slate-700 mb-3 flex items-center space-x-2">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                            <span>Select Document</span>
+                        </label>
+                        <select id="file-selector" class="w-full glass-card border-0 text-slate-800 text-sm rounded-xl p-4 shadow-lg focus:ring-2 focus:ring-purple-500 focus:outline-none transition-all duration-300">
+                            <option value="">✨ Loading magical documents...</option>
+                        </select>
+                    </div>
+                    <div class="glass-card rounded-2xl p-6 shadow-lg">
+                        <h2 id="outline-title" class="font-bold text-lg mb-4 gradient-text">Select a document to explore its structure</h2>
+                        <ul id="outline-list" class="space-y-2"></ul>
+                    </div>
+                </div>
+
+                <div id="content-insights" class="tab-content hidden animate-fade-in-up">
+                    <div class="mb-6">
+                        <label for="persona-selector" class="block text-sm font-semibold text-slate-700 mb-3 flex items-center space-x-2">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            <span>Analysis Persona</span>
+                        </label>
+                        <select id="persona-selector" class="w-full glass-card border-0 text-slate-800 text-sm rounded-xl p-4 shadow-lg focus:ring-2 focus:ring-purple-500 focus:outline-none transition-all duration-300">
+                            <option value="phd_researcher">🎓 PhD Researcher</option>
+                            <option value="investment_analyst">💼 Investment Analyst</option>
+                            <option value="student" selected>📚 Student</option>
+                            <option value="journalist">📰 Journalist</option>
+                            <option value="salesperson">💫 Salesperson</option>
+                            <option value="lawyer">⚖️ Lawyer</option>
+                        </select>
+                    </div>
+                    <button id="generate-insights" class="w-full btn-primary text-white font-semibold py-4 px-6 rounded-xl mb-6 transition-all duration-300 flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        <span>Generate Smart Insights</span>
+                    </button>
+                    <div id="insights-container" class="glass-card rounded-2xl p-6 shadow-lg">
+                        <div class="text-center text-slate-500">
+                            <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center">
+                                <svg class="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                </svg>
+                            </div>
+                            <p class="font-medium">Ready for Analysis</p>
+                            <p class="text-sm mt-1">Click "Generate Smart Insights" to unlock document intelligence</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 main-content flex items-center justify-center relative p-6">
+            <div id="adobe-dc-view" class="w-full h-full absolute inset-6" style="display: none;"></div>
+            <div id="no-pdf-message" class="text-center z-10 glass-card rounded-3xl p-12 shadow-2xl">
+                <div class="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center">
+                    <svg class="w-12 h-12 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold mb-4 gradient-text">No Document Selected</h3>
+                <p class="text-slate-600 max-w-md">Choose a document from the sidebar to begin your research journey. Your PDF will appear here with full interactive capabilities.</p>
+            </div>
+            <div id="pdf-loading" class="text-center z-10 glass-card rounded-3xl p-12 shadow-2xl" style="display: none;">
+                <div class="loader mb-4"></div>
+                <h3 class="text-xl font-semibold mb-2 gradient-text">Loading Your Document</h3>
+                <p class="text-slate-600">Preparing the interactive PDF experience...</p>
+            </div>
+            <div id="pdf-error" class="text-center z-10 glass-card rounded-3xl p-12 shadow-2xl" style="display: none;">
+                <div class="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-red-100 to-pink-100 rounded-full flex items-center justify-center">
+                    <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold mb-4 text-red-600">Unable to Load Document</h3>
+                <p class="text-slate-600 mb-6" id="pdf-error-message"></p>
+                <button id="retry-pdf" class="btn-primary text-white px-6 py-3 rounded-xl font-medium transition-all duration-300">
+                    Try Again
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        const API_BASE_URL = "http://127.0.0.1:5001";
+        let adobeDCView;
+        let adobeViewer = null;
+        let viewerAPIs = null;
+        let currentSelectedFile = '';
+        let isAdobeSDKReady = false;
+        let isPDFLoaded = false;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            setupEventListeners();
+            populateFileSelector();
+            showNoPdfMessage();
+            
+            // Initialize Adobe PDF viewer
+            if (window.AdobeDC) {
+                initializeAdobeViewer();
+            } else {
+                document.addEventListener("adobe_dc_view_sdk.ready", initializeAdobeViewer);
+            }
+        });
+
+        function initializeAdobeViewer() {
+            try {
+                console.log("Initializing Adobe DC View...");
+                const adobeClientId = "a51820d928154996932ff94fa2c0a844";
+                adobeDCView = new AdobeDC.View({ 
+                    clientId: adobeClientId, 
+                    divId: "adobe-dc-view" 
+                });
+                isAdobeSDKReady = true;
+                console.log("Adobe DC View initialized successfully");
+            } catch (error) {
+                console.error("Failed to initialize Adobe DC View:", error);
+                showPdfError("Failed to initialize PDF viewer. Please refresh the page.");
+            }
+        }
+
+        function setupEventListeners() {
+            // Tab switching with enhanced animations
+            document.getElementById('tab-outline').addEventListener('click', () => switchTab('outline'));
+            document.getElementById('tab-insights').addEventListener('click', () => switchTab('insights'));
+            
+            // File selection
+            document.getElementById('file-selector').addEventListener('change', (e) => {
+                handleFileSelection(e.target.value);
+            });
+            
+            // Persona selection and insights generation
+            document.getElementById('generate-insights').addEventListener('click', () => {
+                const persona = document.getElementById('persona-selector').value;
+                loadAndDisplayInsights(persona);
+            });
+
+            // Retry PDF loading
+            document.getElementById('retry-pdf').addEventListener('click', () => {
+                if (currentSelectedFile) {
+                    loadPdfInViewer(currentSelectedFile);
+                }
+            });
+        }
+
+        function switchTab(tabName) {
+            const isOutline = tabName === 'outline';
+            
+            // Update tab buttons with enhanced styling
+            const outlineTab = document.getElementById('tab-outline');
+            const insightsTab = document.getElementById('tab-insights');
+            
+            if (isOutline) {
+                outlineTab.className = outlineTab.className.replace('tab-inactive', 'tab-active');
+                insightsTab.className = insightsTab.className.replace('tab-active', 'tab-inactive');
+            } else {
+                insightsTab.className = insightsTab.className.replace('tab-inactive', 'tab-active');
+                outlineTab.className = outlineTab.className.replace('tab-active', 'tab-inactive');
+            }
+            
+            // Update content visibility with animation
+            const outlineContent = document.getElementById('content-outline');
+            const insightsContent = document.getElementById('content-insights');
+            
+            if (isOutline) {
+                outlineContent.classList.remove('hidden');
+                insightsContent.classList.add('hidden');
+                outlineContent.classList.add('animate-fade-in-up');
+            } else {
+                insightsContent.classList.remove('hidden');
+                outlineContent.classList.add('hidden');
+                insightsContent.classList.add('animate-fade-in-up');
+            }
+        }
+
+        function handleFileSelection(fileStem) {
+            currentSelectedFile = fileStem;
+            if (!fileStem) {
+                showNoPdfMessage();
+                return;
+            }
+            
+            loadAndDisplayOutline(fileStem);
+            loadPdfInViewer(fileStem);
+        }
+
+        function showNoPdfMessage() {
+            document.getElementById('adobe-dc-view').style.display = 'none';
+            document.getElementById('no-pdf-message').style.display = 'block';
+            document.getElementById('pdf-loading').style.display = 'none';
+            document.getElementById('pdf-error').style.display = 'none';
+            isPDFLoaded = false;
+            adobeViewer = null;
+            viewerAPIs = null;
+        }
+
+        function showPdfLoading() {
+            document.getElementById('adobe-dc-view').style.display = 'none';
+            document.getElementById('no-pdf-message').style.display = 'none';
+            document.getElementById('pdf-loading').style.display = 'block';
+            document.getElementById('pdf-error').style.display = 'none';
+            isPDFLoaded = false;
+        }
+
+        function showPdfViewer() {
+            document.getElementById('adobe-dc-view').style.display = 'block';
+            document.getElementById('no-pdf-message').style.display = 'none';
+            document.getElementById('pdf-loading').style.display = 'none';
+            document.getElementById('pdf-error').style.display = 'none';
+        }
+
+        function showPdfError(message) {
+            document.getElementById('adobe-dc-view').style.display = 'none';
+            document.getElementById('no-pdf-message').style.display = 'none';
+            document.getElementById('pdf-loading').style.display = 'none';
+            document.getElementById('pdf-error').style.display = 'block';
+            document.getElementById('pdf-error-message').textContent = message;
+            isPDFLoaded = false;
+            adobeViewer = null;
+            viewerAPIs = null;
+        }
+
+        async function loadPdfInViewer(fileStem) {
+            console.log(`Loading PDF for: ${fileStem}`);
+            
+            if (!isAdobeSDKReady || !adobeDCView) {
+                console.warn('Adobe DC View not ready yet, retrying in 1 second...');
+                setTimeout(() => loadPdfInViewer(fileStem), 1000);
+                return;
+            }
+            
+            showPdfLoading();
+            
+            try {
+                const pdfUrl = `${API_BASE_URL}/api/pdf/${fileStem}`;
+                console.log(`Checking PDF at: ${pdfUrl}`);
+                
+                const response = await fetch(pdfUrl, { method: 'HEAD' });
+                if (!response.ok) {
+                    throw new Error(`PDF not found: ${response.status} ${response.statusText}`);
+                }
+                
+                console.log('PDF file exists, loading in viewer...');
+                
+                const viewerDiv = document.getElementById('adobe-dc-view');
+                viewerDiv.innerHTML = '';
+                
+                adobeDCView = new AdobeDC.View({ 
+                    clientId: "a51820d928154996932ff94fa2c0a844", 
+                    divId: "adobe-dc-view" 
+                });
+                
+                const previewConfig = {
+                    content: { location: { url: pdfUrl } },
+                    metaData: { fileName: `${fileStem}.pdf` }
+                };
+                
+                const viewerConfig = {
+                    embedMode: "SIZED_CONTAINER",
+                    showLeftHandPanel: false,
+                    showAnnotationTools: false,
+                    showPrintPDF: true,
+                    showDownloadPDF: true,
+                    showBookmarks: false,
+                    enableFormFilling: false,
+                    enableSearchAPIs: false
+                };
+                
+                const previewFilePromise = adobeDCView.previewFile(previewConfig, viewerConfig);
+                adobeViewer = await previewFilePromise;
+                console.log('PDF viewer loaded, getting APIs...');
+                
+                viewerAPIs = await adobeViewer.getAPIs();
+                console.log('APIs retrieved successfully:', viewerAPIs);
+                
+                isPDFLoaded = true;
+                showPdfViewer();
+                
+                console.log('PDF loaded successfully and ready for navigation');
+                
+            } catch (error) {
+                console.error('Error loading PDF:', error);
+                showPdfError(`Failed to load PDF: ${error.message}`);
+            }
+        }
+
+        async function populateFileSelector() {
+            const selector = document.getElementById('file-selector');
+            selector.innerHTML = '<option value="">✨ Loading magical documents...</option>';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/files`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const files = await response.json();
+                selector.innerHTML = '<option value="">📚 Select a document to explore</option>';
+                
+                if (files.length === 0) {
+                    selector.innerHTML = '<option value="">📭 No documents processed yet</option>';
+                    return;
+                }
+                
+                files.forEach(fileStem => {
+                    const option = document.createElement('option');
+                    option.value = fileStem;
+                    option.textContent = `📄 ${fileStem}`;
+                    selector.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Error loading files:', error);
+                selector.innerHTML = '<option value="">❌ Error loading documents</option>';
+            }
+        }
+
+        async function loadAndDisplayOutline(fileStem) {
+            const titleEl = document.getElementById('outline-title');
+            const listEl = document.getElementById('outline-list');
+            
+            titleEl.innerHTML = '<div class="flex items-center space-x-2"><div class="animate-pulse-soft">🔍</div><span>Analyzing document structure...</span></div>';
+            listEl.innerHTML = '<div class="flex justify-center py-8"><div class="loader"></div></div>';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/outline/${fileStem}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                displayOutline(data);
+                
+            } catch (error) {
+                console.error('Error loading outline:', error);
+                titleEl.innerHTML = '<div class="flex items-center space-x-2 text-red-500"><span>❌</span><span>Error loading outline</span></div>';
+                listEl.innerHTML = '<li class="text-red-500 p-4 text-center glass-card rounded-xl">Failed to load document structure</li>';
+            }
+        }
+
+        function displayOutline(data) {
+            const titleEl = document.getElementById('outline-title');
+            const listEl = document.getElementById('outline-list');
+            
+            titleEl.innerHTML = `<div class="flex items-center space-x-2"><span>📋</span><span>${data.title || 'Untitled Document'}</span></div>`;
+            listEl.innerHTML = '';
+            
+            if (!data.outline || data.outline.length === 0) {
+                listEl.innerHTML = `
+                    <li class="text-center p-6 glass-card rounded-xl">
+                        <div class="text-4xl mb-2">📄</div>
+                        <p class="text-slate-500 font-medium">No outline structure detected</p>
+                        <p class="text-slate-400 text-sm mt-1">This document may not have clear headings</p>
+                    </li>
+                `;
+                return;
+            }
+            
+            data.outline.forEach((item, index) => {
+                const li = document.createElement('li');
+                
+                // Enhanced styling based on heading level
+                const paddingClass = {
+                    'H1': 'pl-0',
+                    'H2': 'pl-6', 
+                    'H3': 'pl-12'
+                }[item.level] || 'pl-0';
+                
+                const textClass = {
+                    'H1': 'text-base font-bold text-slate-800',
+                    'H2': 'text-sm font-semibold text-slate-700', 
+                    'H3': 'text-sm font-medium text-slate-600'
+                }[item.level] || 'text-sm text-slate-600';
+                
+                const iconClass = {
+                    'H1': '📖',
+                    'H2': '📝',
+                    'H3': '📌'
+                }[item.level] || '📄';
+                
+                li.className = `${paddingClass} animate-fade-in-up`;
+                li.style.animationDelay = `${index * 0.1}s`;
+                li.innerHTML = `
+                    <a href="#" data-page="${item.page}" class="flex items-center p-3 rounded-xl hover:bg-slate-100 w-full group outline-item transition-all duration-300">
+                        <span class="text-lg mr-3 group-hover:scale-110 transition-transform duration-300">${iconClass}</span>
+                        <span class="flex-1 ${textClass} group-hover:text-purple-600 transition-colors duration-300">${item.text}</span>
+                        <span class="page-badge text-white text-xs font-bold px-3 py-1 rounded-full ml-3 opacity-80 group-hover:opacity-100 transition-all duration-300">
+                            ${item.page}
+                        </span>
+                    </a>
+                `;
+                
+                // Add click handler for page navigation
+                li.querySelector('a').addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const pageNum = parseInt(e.currentTarget.dataset.page, 10);
+                    const clickedElement = e.currentTarget;
+                    
+                    console.log(`Outline item clicked - navigating to page: ${pageNum}`);
+                    
+                    // Clear previous active states
+                    document.querySelectorAll('.outline-item').forEach(el => {
+                        el.classList.remove('outline-item-active');
+                    });
+                    
+                    // Add active state to clicked item
+                    clickedElement.classList.add('outline-item-active');
+                    
+                    // Navigate to page
+                    await navigateToPage(pageNum);
+                });
+                
+                listEl.appendChild(li);
+            });
+        }
+
+        async function navigateToPage(pageNum) {
+            console.log(`🔍 Attempting to navigate to page ${pageNum}`);
+            
+            // Check if PDF is loaded and APIs are available
+            if (!isPDFLoaded || !viewerAPIs) {
+                console.warn('❌ PDF not loaded or APIs not available');
+                
+                // If PDF is still loading, wait and retry
+                if (!isPDFLoaded) {
+                    console.log('⏳ PDF still loading, waiting...');
+                    setTimeout(() => navigateToPage(pageNum), 2000);
+                    return;
+                }
+                return;
+            }
+            
+            try {
+                console.log('✅ PDF loaded, APIs available, calling gotoLocation...');
+                
+                // Use the gotoLocation API with proper error handling
+                await viewerAPIs.gotoLocation(pageNum);
+                console.log(`✅ Successfully navigated to page ${pageNum}`);
+                
+            } catch (error) {
+                console.error(`❌ Navigation failed for page ${pageNum}:`, error);
+                
+                // Try alternative navigation method
+                try {
+                    console.log('🔄 Trying alternative navigation method...');
+                    if (viewerAPIs.getCurrentPage) {
+                        const currentPage = await viewerAPIs.getCurrentPage();
+                        console.log(`Current page: ${currentPage}, target: ${pageNum}`);
+                        
+                        // Try gotoLocation with coordinates
+                        await viewerAPIs.gotoLocation(pageNum, 0, 0);
+                        console.log(`✅ Alternative navigation succeeded for page ${pageNum}`);
+                    }
+                } catch (altError) {
+                    console.error(`❌ Alternative navigation also failed:`, altError);
+                }
+            }
+        }
+
+        async function loadAndDisplayInsights(persona) {
+            const container = document.getElementById('insights-container');
+            
+            container.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center animate-pulse-soft">
+                        <svg class="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="gradient-text font-bold text-lg mb-2">Analyzing Documents</h3>
+                    <p class="text-slate-600 mb-2">Generating insights for ${persona.replace('_', ' ')}...</p>
+                    <p class="text-slate-400 text-sm">This magical process may take a moment ✨</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/insights?persona=${persona}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                displayPersonaInsights(data);
+                
+            } catch (error) {
+                console.error('Error loading insights:', error);
+                container.innerHTML = `
+                    <div class="text-center p-8">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-red-100 to-pink-100 rounded-full flex items-center justify-center">
+                            <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="font-bold text-lg mb-2 text-red-600">Analysis Failed</h3>
+                        <p class="text-slate-600 text-sm mb-1">${error.message}</p>
+                        <p class="text-slate-400 text-xs">Please try again or contact support</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayPersonaInsights(data) {
+            const container = document.getElementById('insights-container');
+            
+            if (!data || !data.extracted_sections || data.extracted_sections.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center p-8">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-full flex items-center justify-center">
+                            <svg class="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="font-bold text-lg mb-2 gradient-text">No Insights Found</h3>
+                        <p class="text-slate-600 mb-1">No relevant insights discovered for this persona</p>
+                        <p class="text-slate-400 text-sm">Try a different persona or ensure documents are processed</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const sectionsHtml = data.extracted_sections.map((section, index) => {
+                const docStem = section.document.replace('.pdf', '');
+                return `
+                    <div class="insight-card rounded-2xl p-6 cursor-pointer animate-fade-in-up" 
+                         data-page="${section.page}" 
+                         data-doc-stem="${docStem}"
+                         style="animation-delay: ${index * 0.1}s">
+                        <div class="flex justify-between items-start mb-4">
+                            <h4 class="font-bold text-slate-800 flex-1 pr-4 leading-tight">${section.title}</h4>
+                            <div class="importance-badge text-white text-xs font-bold px-3 py-1 rounded-full flex-shrink-0">
+                                #${section.importance_rank}
+                            </div>
+                        </div>
+                        <p class="text-slate-600 leading-relaxed mb-4 text-sm">${section.subsection_analysis.refined_text}</p>
+                        <div class="flex justify-between items-center pt-3 border-t border-slate-100">
+                            <div class="flex items-center space-x-2">
+                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <span class="text-xs text-slate-500 font-medium">${section.document}</span>
+                            </div>
+                            <div class="status-badge text-white text-xs font-bold px-3 py-1 rounded-full">
+                                Page ${section.page}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = `
+                <div class="mb-6 p-4 glass-morphism rounded-2xl">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-white text-sm uppercase tracking-wider">
+                                ${data.metadata.persona.replace('_', ' ')}
+                            </h3>
+                            <p class="text-white/80 text-xs">${data.metadata.job}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4 text-white/60 text-xs">
+                        <div class="flex items-center space-x-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <span>${data.metadata.documents_processed.length} documents</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            <span>${data.extracted_sections.length} insights</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    ${sectionsHtml}
+                </div>
+            `;
+            
+            // Add click handlers for insight cards
+            container.querySelectorAll('[data-page]').forEach(el => {
+                el.addEventListener('click', async () => {
+                    const pageNum = parseInt(el.dataset.page, 10);
+                    const docStem = el.dataset.docStem;
+                    
+                    // Add visual feedback
+                    el.style.transform = 'scale(0.98)';
+                    setTimeout(() => {
+                        el.style.transform = '';
+                    }, 150);
+                    
+                    // Switch to that document if needed
+                    if (docStem !== currentSelectedFile) {
+                        document.getElementById('file-selector').value = docStem;
+                        handleFileSelection(docStem);
+                        
+                        // Wait for PDF to load before navigating
+                        setTimeout(() => navigateToPage(pageNum), 3000);
+                    } else {
+                        // Navigate immediately if same document
+                        await navigateToPage(pageNum);
+                    }
+                });
+            });
+        }
+    </script>
+</body>
+</html>
+                
